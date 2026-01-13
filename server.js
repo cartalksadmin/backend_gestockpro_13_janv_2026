@@ -10,12 +10,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuration Middlewares de base
-app.use(cors());
+// Mise à jour CORS pour supporter les requêtes cross-origin du frontend
+app.use(cors({
+  origin: '*', // Autorise toutes les origines pour la flexibilité du déploiement
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id']
+}));
+
+// Use raw body for payment webhooks (Stripe requires raw body to verify signature)
+// Ce middleware doit être AVANT express.json() pour les routes de webhook
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 
 // Routes API v1
-// Use raw body for payment webhooks (Stripe requires raw body to verify signature)
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use('/api', apiRoutes);
 
 // Serve uploaded files (fallback local storage)
