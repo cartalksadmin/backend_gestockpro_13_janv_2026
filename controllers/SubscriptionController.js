@@ -8,24 +8,21 @@ export class SubscriptionController {
    */
   static async listPlans(req, res) {
     try {
-      // On récupère les plans directement depuis la table 'plans'
       const dbPlans = await Plan.findAll({
         where: { isActive: true },
         order: [['priceMonthly', 'ASC']]
       });
       
-      // Si la base est vide, on renvoie les plans par défaut pour ne pas bloquer l'UI, 
-      // mais l'objectif est d'utiliser dbPlans.
+      // Fallback sécurisé si la table est vide (initialisation)
       if (!dbPlans || dbPlans.length === 0) {
-        // Fallback optionnel si la table est vide lors du premier test
         return res.status(200).json([
-          { id: 'BASIC', name: 'Starter AI', price: 49, maxUsers: 1, hasAiChatbot: false },
-          { id: 'PRO', name: 'Business Pro', price: 129, maxUsers: 5, hasAiChatbot: true, isPopular: true },
-          { id: 'ENTERPRISE', name: 'Enterprise Cloud', price: 399, maxUsers: 100, hasAiChatbot: true }
+          { id: 'BASIC', name: 'Starter AI', price: 49, maxUsers: 1, hasAiChatbot: false, hasStockForecast: false },
+          { id: 'PRO', name: 'Business Pro', price: 129, maxUsers: 5, hasAiChatbot: true, hasStockForecast: true, isPopular: true },
+          { id: 'ENTERPRISE', name: 'Enterprise Cloud', price: 399, maxUsers: 100, hasAiChatbot: true, hasStockForecast: true }
         ]);
       }
 
-      // Formatage pour le frontend
+      // Formatage unifié pour le frontend
       const formattedPlans = dbPlans.map(p => ({
         id: p.id,
         name: p.name,
@@ -33,7 +30,7 @@ export class SubscriptionController {
         maxUsers: p.maxUsers,
         hasAiChatbot: p.hasAiChatbot,
         hasStockForecast: p.hasStockForecast,
-        isPopular: p.id === 'PRO' // Logique métier simple pour le badge
+        isPopular: p.id === 'PRO'
       }));
 
       return res.status(200).json(formattedPlans);
@@ -51,7 +48,7 @@ export class SubscriptionController {
       const plan = await Plan.findByPk(planId);
       if (!plan) return res.status(404).json({ error: 'Plan non trouvé' });
 
-      const payment = await PaymentGateway.initializePayment(paymentMethod, plan.priceMonthly, 'EUR', { tenantId, planId });
+      const payment = await PaymentGateway.initializePayment(paymentMethod, plan.priceMonthly, 'F CFA', { tenantId, planId });
 
       return res.status(200).json(payment);
     } catch (error) {
